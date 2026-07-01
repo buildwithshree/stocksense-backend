@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: stocksense-api
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+      # Neon.tech requires SSL
+      data-source-properties:
+        sslmode: require
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd'T'HH:mm:ss
+    time-zone: UTC
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+# JWT configuration — set these as Render environment variables
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry-ms: 900000       # 15 minutes
+  refresh-token-expiry-ms: 604800000   # 7 days
+
+# Python ML service URL — set as Render environment variable
+ml:
+  service:
+    base-url: ${ML_SERVICE_URL}
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
+
+# Spring Actuator — expose only health for Render health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.stocksense: INFO
+    org.springframework.security: WARN

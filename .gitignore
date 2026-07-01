@@ -6,6 +6,8 @@ target/
 .vscode/
 .DS_Store
 .env
+compile_errors.txt
+src/main/resources/application-local.yml
 HELP.md
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
