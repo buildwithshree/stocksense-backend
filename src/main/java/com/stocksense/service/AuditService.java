@@ -24,7 +24,6 @@ public class AuditService {
     // never slow down the main request path.
     // Propagation.REQUIRES_NEW: audit always commits even if the
     // calling transaction rolls back (e.g. failed prediction).
-    @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(UUID userId, AuditAction action, Map<String, Object> metadata, String ipAddress) {
         try {

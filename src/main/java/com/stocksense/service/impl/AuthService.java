@@ -50,9 +50,6 @@ public class AuthService {
                 .build();
         userRepository.save(user);
 
-        auditService.log(user.getId(), AuditAction.USER_REGISTERED,
-                Map.of("email", user.getEmail()), ipAddress);
-
         return buildAuthResponse(user);
     }
 

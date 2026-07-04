@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -62,11 +64,11 @@ public class Prediction {
     @Column(name = "risk_score", nullable = false)
     private Short riskScore;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "risk_label", nullable = false, columnDefinition = "risk_label")
     private RiskLabel riskLabel;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "model_used", nullable = false, columnDefinition = "model_name")
     private ModelName modelUsed;
 
