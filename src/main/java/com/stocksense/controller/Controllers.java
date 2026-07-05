@@ -34,12 +34,20 @@ class PredictionController {
     private final PredictionService predictionService;
 
     @PostMapping
-    public ResponseEntity<PredictionResponse> predict(
+    public ResponseEntity<?> predict(
             @Valid @RequestBody PredictionRequest req,
             @AuthenticationPrincipal String userId
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(predictionService.predict(req.ticker(), UUID.fromString(userId)));
+        var outcome = predictionService.predict(req.ticker(), UUID.fromString(userId));
+        return switch (outcome) {
+            case com.stocksense.service.PredictionOutcome.PredictionReady ready ->
+                    ResponseEntity.status(HttpStatus.CREATED).body(ready.response());
+            case com.stocksense.service.PredictionOutcome.PredictionTraining training ->
+                    ResponseEntity.status(HttpStatus.ACCEPTED)
+                            .header("Retry-After", String.valueOf(training.retryAfterSeconds()))
+                            .body(new TrainingStatusResponse(
+                                    training.ticker(), "training", training.message(), training.retryAfterSeconds()));
+        };
     }
 
     @GetMapping("/history")
