@@ -16,7 +16,7 @@ import com.stocksense.dto.response.PredictionResponse;
  * into the success DTO) is structurally impossible with this shape: there
  * is no single type with optional fields to misuse.
  */
-public sealed interface PredictionOutcome permits PredictionReady, PredictionTraining {
+public sealed interface PredictionOutcome {
 
     record PredictionReady(PredictionResponse response) implements PredictionOutcome {}
 

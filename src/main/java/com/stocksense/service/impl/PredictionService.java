@@ -190,7 +190,7 @@ public class PredictionService {
     // User loaded / Prediction persisted yet; predict() does that and
     // constructs the real PredictionOutcome afterward. ───────────────────────
 
-    private sealed interface MlCallResult permits MlSuccess, MlTraining {}
+    private sealed interface MlCallResult {}
 
     private record MlSuccess(MlPredictResponse response) implements MlCallResult {}
 
