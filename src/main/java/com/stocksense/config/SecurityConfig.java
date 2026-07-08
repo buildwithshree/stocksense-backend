@@ -1,5 +1,7 @@
 package com.stocksense.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stocksense.dto.response.ErrorResponse;
 import com.stocksense.entity.User;
 import com.stocksense.repository.UserRepository;
 import com.stocksense.util.JwtUtil;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -27,6 +30,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
@@ -38,6 +42,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -115,6 +120,35 @@ class JwtAuthFilter extends OncePerRequestFilter {
     }
 }
 
+// ─── Auth Entry Point ─────────────────────────────────────────────────────────
+// Without this, Spring Security's DEFAULT entry point for a stateless app
+// with no formLogin()/httpBasic() configured is Http403ForbiddenEntryPoint —
+// meaning every missing/expired JWT was returning 403, not 401. This mattered
+// concretely: the frontend's Axios interceptor only auto-refreshes/retries
+// on 401 (correctly — 403 is legitimately used elsewhere for admin-only
+// routes and treating it the same would be wrong). A stray 403 on an
+// expired-but-refreshable token meant the frontend gave up with a raw,
+// unrecovered error instead of silently refreshing and retrying.
+@Component
+@RequiredArgsConstructor
+class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public void commence(HttpServletRequest req, HttpServletResponse res,
+                          org.springframework.security.core.AuthenticationException authException)
+            throws IOException {
+        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ErrorResponse body = new ErrorResponse(
+                401, "Unauthorized",
+                "Authentication required or token expired",
+                OffsetDateTime.now(), req.getRequestURI()
+        );
+        res.getWriter().write(objectMapper.writeValueAsString(body));
+    }
+}
+
 // ─── Security Configuration ───────────────────────────────────────────────────
 @Configuration
 @EnableWebSecurity
@@ -122,6 +156,7 @@ class JwtAuthFilter extends OncePerRequestFilter {
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -129,6 +164,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
